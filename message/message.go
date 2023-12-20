@@ -1,29 +1,55 @@
 package message
 
+import (
+	"bytes"
+	"encoding/binary"
+)
+
 type Message struct {
 	// メッセージの種類
 	msgType MsgType
 	// メッセージの内容
-	content string
+	// utf-8 でエンコードしてバイト長が uint16 に収まる必要がある
+	body string
 }
 
+func NewCastMessage(body string) Message {
+	return Message{
+		msgType: Cast,
+		body:    body,
+	}
+}
+
+func NewSurrenderMessage() Message {
+	return Message{
+		msgType: Surrender,
+	}
+}
+
+// Bytes はメッセージをバイト列に変換する。
+// バイト列のフォーマットは以下の通り。
+// MsgType: uint8 (1 byte)
+// bodyLength: uint32 (4 bytes)
+// body: []byte (bodyLength bytes of utf-8 encoded string)
 func (msg Message) Bytes() []byte {
-	buf := make([]byte, 0, 1024)
-	buf = append(buf, byte(msg.msgType))
+	buf := bytes.NewBuffer([]byte{})
+	buf.WriteByte(byte(msg.msgType))
 
-	contentBytes := []byte(msg.content)
+	bodyBytes := []byte(msg.body)
 
-	buf = append(buf, byte(len(contentBytes)))
-	buf = append(buf, contentBytes...)
+	bodyLen := uint16(len(bodyBytes))
 
-	return buf
+	binary.Write(buf, binary.BigEndian, bodyLen)
+	buf.Write(bodyBytes)
+
+	return buf.Bytes()
 }
 
 func (msg Message) String() string {
 	s := ""
 	switch msg.msgType {
 	case Cast:
-		s = "Cast: " + msg.content
+		s = "Cast: " + msg.body
 	case Surrender:
 		s = "Surrender"
 	default:

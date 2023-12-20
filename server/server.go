@@ -95,9 +95,20 @@ func handleConnection(conn net.Conn) {
 	conn.Write(bytes)
 	log.Println("Game data sent.: ", bytes)
 
-	msgReceiver := NewMessageReceiver(&conn)
-	msgReceiver.Start()
+	msgReceiver := NewMessageReceiver()
 
-	// クライアントによりコネクションが切断されるまで待機する
-	<-msgReceiver.ch
+	// クライアントによりコネクションが切断されるまで Read し続ける
+	for {
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err.Error() == "EOF" {
+				log.Println("Connection closed by client.")
+			} else {
+				log.Println(err)
+			}
+			return
+		}
+		msgReceiver.Receive(buf[:n])
+	}
 }

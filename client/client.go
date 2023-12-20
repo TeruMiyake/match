@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TeruMiyake/match/message"
 	"github.com/TeruMiyake/match/network"
 )
 
@@ -81,14 +82,17 @@ func connectToServer(raddr string, port int) error {
 		fmt.Println("Enter message: ")
 		sc.Scan()
 
-		msg := sc.Text()
-		if strings.ToLower(msg) == "exit" {
+		input := sc.Text()
+		var msg message.Message
+		if strings.ToLower(input) == "exit" {
 			break
+		} else {
+			msg = message.NewCastMessage(input)
 		}
 
-		fmt.Println("Sending message: ", msg)
+		fmt.Println("Sending message: ", msg.String())
 		conn.SetDeadline(time.Now().Add(5 * time.Second))
-		_, err := conn.Write([]byte(msg))
+		_, err := conn.Write(msg.Bytes())
 		if err != nil {
 			log.Println("Failed to send message: ", err)
 			return err
